@@ -1,15 +1,22 @@
 function Scanner()
-    figHandle = figure('Position', [300, 800, 1200, 500]);
+    Scanner_Constructor;
+    
+    figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500], ...
+                       'menubar', 'none');
+    
+    %set constructor for figure
+    set(figHandle, 'createfcn', @Scanner_Constructor);
+    set(figHandle, 'deletefcn', @Scanner_Destructor);
 
     %add main panel
     showPanel = uipanel('Title', '', 'Position', [0.5, 0, 0.5, 0.99],...
-                        'BackgroundColor', 'green');
+                        'BackgroundColor', [0.25, 0.1, 0.25]);
     %create axes
     dispFrame = axes('Parent', showPanel, 'Position', [0.01, 0.01, 0.98, 0.98]);
     set(dispFrame,'Visible','on');
     
     controlPanel = uipanel('Title','', 'Position',[0,0.0,0.5, 0.99],...
-                        'BackgroundColor', 'yellow');
+                        'BackgroundColor', [0.25, 0.1, 0.25]);
                         
     cameraCapturePanel = uipanel('Parent', controlPanel, 'Title', 'Camera capture',...
                         'Position', [0.01, 0.01, 0.48, 0.48],...
@@ -31,7 +38,8 @@ function Scanner()
     
     % menu load data
     mnLoadData  = uimenu(figHandle, 'Label', 'Data');
-    mnLoadImage = uimenu('Parent', mnLoadData, 'Label', 'Load Images'); %choose the folder for graycode and phaseshift
+    mnLoadImage = uimenu('Parent', mnLoadData, 'Label', 'Load Images',...
+                         'callback', @loadImage); %choose the folder for graycode and phaseshift
     mnImportPC  = uimenu('Parent', mnLoadData, 'Label', 'Import Poincloud');
     mnExportPC  = uimenu('Parent', mnLoadData, 'Label', 'Export Pointcloud');
     mnExit      = uimenu('Parent', mnLoadData, 'Label', 'Exit');
@@ -47,14 +55,25 @@ function Scanner()
     % create two button in process panel
     %show point cloud button
     btShowPC = uicontrol('Parent', processPanel,...
-                        'string', 'Show Point Cloud', 'Position', [60 125 160 40],...
+                        'string', 'Show Point Cloud', 'Position', [60 170 160 30],...
                         'callback',{@showImage_test, dispFrame});
                         
     % Reconstruct button
     btReconstruct = uicontrol('Parent', processPanel,...
-                        'string', 'Reconstruct', 'Position', [60 65 160 40],...
-                        'callback',@hello);                   
+                        'string', 'Reconstruct', 'Position', [60 130 160 30],...
+                        'callback',@hello);
+                        
+     % Decode graycode button
+    btDecodeGray = uicontrol('Parent', processPanel,...
+                        'string', 'Decode graycode', 'Position', [60 70 160 30],...
+                        'callback',@dispProImageGUI);
     
+    % Decode graycode button
+    btUnwrapPhase = uicontrol('Parent', processPanel,...
+                        'string', 'Unwrap Phase', 'Position', [60 30 160 30],...
+                        'string', 'Unwrap Phase', 'Position', [60 30 160 30],...
+                        'callback',@hello);
+                        
      %//*****************CAMERA TWEAK*******************
     %Create slider in camera tweak
     %static text constrast
@@ -157,10 +176,32 @@ function Scanner()
     %---------------------------------------------------------
 end
 
+function Scanner_Constructor() 
+    addpath('./Modules/Camera');
+    addpath('./Modules/DisplayResult');
+    addpath('./Modules/GrayCode');
+    addpath('./Modules/PhaseShift');
+    addpath('./Modules/IO');
+end
+
+function Scanner_Destructor()
+    rmpath('./Modules/Camera');
+    rmpath('./Modules/DisplayResult');
+    rmpath('./Modules/GrayCode');
+    rmpath('./Modules/PhaseShift');
+    rmpath('./Modules/IO');
+    close all;
+end
+
+%%%%%%%%%%%%%%%%%%%%---CALLBACK FUNCTIONS---%%%%%%%%%%%%%%%%%%%%
 function hello
     disp('Hello world');
 end
 
+function showDecode_callback(src, evnt)
+     
+end
+    
 function showImage_test(src, evnt, handles)
     im = imread('./image/phase1.jpg');
     imshow(im, 'Parent', handles);
