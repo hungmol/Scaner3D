@@ -10,36 +10,29 @@ function decodeGrayIM(grayIM, grayThresh)
     %       D{j,k} is the integer column/row estimate.
     %       M{j,k} is the per-pixel mask (i.e., pixels with enough contrast).
     cam_width = size(grayIM{1,1}(2));
-    cam_height = size(grayIM{1,1}(1));
-    proj_width = 1024;
-    proj_height = 768;
-    
-    [~,offset] = graycode(proj_width, proj_height);
-    
+    cam_height
     disp('+ Recovering projector rows/columns from structured light sequence...');
     numOfPattern = 42;
     G = cell(1, (numOfPattern-2)*0.5);
     D = cell(1, (numOfPattern-2)*0.5);
     M = cell(1, (numOfPattern-2)*0.5);
 
-    frameIdx = 3;
-    for i = 1:1:numOfPattern
+    for i = 3:1:numOfPattern - 1
        G{1, i} = zeros(size(T{1}{1},1),size(T{1}{1},2),size(A,2),'uint8');
        M{1, i} = false(size(T{1}{1},1),size(T{1}{1},2));
-       
-       % Separate two type of gray image
-       grayA = grayIM{1, frameIdx};
-       frameIdx = frameIdx + 1;
-       grayB = grayIM{1, frameIdx};
-       frameIdx = frameIdx + 1;
-       
-       % Eliminate all pixels that do not exceed contrast threshold.
-       M{1, i}(abs(grayA-grayB) > 255*grayThresh) = true;
-       
-       % Estimate current bit of Gray code from image pair.
-       bitPlane = zeros(size(T{1}{1},1),size(T{1}{1},2),'uint8');
-       bitPlane(grayA(:,:) >= grayB(:,:)) = 1;
-       G{j,k}(:,:,i) = bitPlane;
+       for i = 1:size(A,2)  
+           % Convert image pair to grayscale.
+               grayA = grayIM{1, i};
+               grayB = grayIM{1, i + 1};
+                 
+           % Eliminate all pixels that do not exceed contrast threshold.
+           M{1, i}(abs(grayA-grayB) > 255*grayThresh) = true;
+                 
+           % Estimate current bit of Gray code from image pair.        
+           bitPlane = zeros(size(T{1}{1},1),size(T{1}{1},2),'uint8');
+           bitPlane(grayA(:,:) >= grayB(:,:)) = 1;
+           G{j,k}(:,:,i) = bitPlane;            
+       end
        
        if strcmp(seqType,'Gray')
           D{j,k} = gray2dec(G{j,k})-offset(j);

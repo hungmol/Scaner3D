@@ -1,12 +1,12 @@
 function Scanner()
     Scanner_Constructor;
     global figHandle
-    figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500], ...
-                       'menubar', 'none');
+%    figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500], 'menubar', 'none');
+    figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500]);
     
     %set constructor for figure
-    set(figHandle, 'createfcn', @Scanner_Constructor);
-    set(figHandle, 'deletefcn', @Scanner_Destructor);
+    set(figHandle, 'createfcn', {@Scanner_Constructor});
+    set(figHandle, 'deletefcn', {@Scanner_Destructor});
 
     %add main panel
     showPanel = uipanel('Title', '', 'Position', [0.5, 0, 0.5, 0.99],...
@@ -39,7 +39,7 @@ function Scanner()
     % menu load data
     mnLoadData  = uimenu(figHandle, 'Label', 'Data');
     mnLoadImage = uimenu('Parent', mnLoadData, 'Label', 'Load Images',...
-                         'callback', @loadImage_callback); %choose the folder for graycode and phaseshift
+                         'callback', {@loadImage_callback}); %choose the folder for graycode and phaseshift
     
     mnImportPC  = uimenu('Parent', mnLoadData, 'Label', 'Import Poincloud');
     mnExportPC  = uimenu('Parent', mnLoadData, 'Label', 'Export Pointcloud');
@@ -177,16 +177,16 @@ function Scanner()
     %---------------------------------------------------------
 end
 
-function Scanner_Constructor() 
+function Scanner_Constructor(src, evnt) 
     global figHandle
     
-    % Initilize for gray code image
-    setappdata(figHandle, 'grayHor', 0);
-    setappdata(figHandle, 'grayVer', 0);
+    % Initilize for gray code image    
+    setappdata(0, 'grayHor', figHandle);
+    setappdata( 0, 'grayVer', figHandle);
     
     % Initilize for phase shift image
-    setappdata(figHandle, 'wrappedPhase', 0);
-    setappdata(figHandle, 'unWrappedPhase', 0);
+    setappdata(0, 'wrappedPhase', figHandle);
+    setappdata(0, 'unWrappedPhase', figHandle);
     
     addpath('./Modules/Camera');
     addpath('./Modules/DisplayResult');
@@ -195,7 +195,7 @@ function Scanner_Constructor()
     addpath('./Modules/IO');
 end
 
-function Scanner_Destructor()
+function Scanner_Destructor(src, evnt)
     rmpath('./Modules/Camera');
     rmpath('./Modules/DisplayResult');
     rmpath('./Modules/GrayCode');
@@ -213,25 +213,27 @@ end
 function showImage_test(src, evnt, handles)
     im = imread('./image/phase1.jpg');
     imshow(im, 'Parent', handles);
-endfunction
+end
 
 %true function
-function loadImage_callback()
+function loadImage_callback(src, evnt)
     global figHandle
     [grayIM, phaseIM] = loadImage();
-    setappdata(figHandle, 'grayIM', grayIM, 'phaseIM', phaseIM);
-endfunction
+    setappdata(figHandle, 'grayIM', grayIM);
+    setappdata(figHandle, 'phaseIM', phaseIM);
+end
 
-function calWrappedPhase_callback()
+function calWrappedPhase_callback(src, evnt)
     global figHandle
     [wPhi, uPhi] = calWrappedPhase(figHandle);
-    setappdata(figHandle, 'wrappedPhase', wPhi, 'unWrappedPhase', uPhi);
+    setappdata(figHandle,'wrappedPhase',wPhi);
+    setappdata(figHandle,'unWrappedPhase',uPhi);
     grayHor = getappdata(figHandle, 'grayHor');
     grayVer = getappdata(figHandle, 'grayVer');
     dispProImageGUI(grayHor, grayVer, wPhi, uPhi);
-endfunction
+end
 
-function decodeGray_callback()
+function decodeGray_callback(src, evnt)
     global figHandle
 
 end

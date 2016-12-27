@@ -8,14 +8,16 @@
 function [wPhi, uPhi] = calWrappedPhase(handles)
     
     phaseIM = getappdata(handles, 'phaseIM');
-    
+    wPhi = 0;
+    uPhi = 0;
     if isempty(phaseIM)
         errordlg('Please load phase shift image before do this step', 'Error');
-    endif
+        return;
+    end
     
     wPhi = single(atan2(sqrt(3)*(phaseIM{1,1} - phaseIM{1,3}), 2*phaseIM{1,2} - phaseIM{1,1} - phaseIM{1,3}));
     
     %unwrapped phase
     uPhi = Miguel_2D_unwrapper(wPhi);
     
-endfunction
+end

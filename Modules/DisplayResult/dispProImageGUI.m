@@ -28,7 +28,8 @@ function dispProImageGUI(grayHor, grayVer, wrappedImage, unWrappedImage)
     if (nargin < 4)
         msgbox('Not enough input arguments', 'Error input arguments');
         return;
-    endif   
+    end
+    
     hMainWindow = figure('Position',[300, 800, 900, 900],...
                          'menubar', 'none'); 
     
@@ -64,28 +65,19 @@ function dispProImageGUI(grayHor, grayVer, wrappedImage, unWrappedImage)
     
     %Show picture
     colormap(gray(256));
-    if isempty(grayHor)
-        continue;
-    else
+    if ~isempty(grayHor)
         imagesc(grayHor, 'Parent', axesGrayHor);
-    endif
+    end
     
-    if isempty(grayVer)
-        continue;
-    else
+    if ~isempty(grayVer)
         imagesc(grayVer, 'Parent', axesGrayVer);
-    endif
+    end
     
-    if isempty(wrappedImage)
-        continue;
-    else
+    if ~isempty(wrappedImage)
         imagesc(wrappedImage, 'Parent', axesWrappedPhase);
-    endif
+    end
     
-    if isempty(unWrappedImage)
-        continue;
-    else
+    if ~isempty(unWrappedImage)
         imagesc(unWrappedImage, 'Parent', axesUnwrappedPhase);
-    endif
-    
-endfunction
+    end   
+end
