@@ -1,6 +1,6 @@
 function Scanner()
     Scanner_Constructor;
-    
+    global figHandle
     figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500], ...
                        'menubar', 'none');
     
@@ -39,7 +39,8 @@ function Scanner()
     % menu load data
     mnLoadData  = uimenu(figHandle, 'Label', 'Data');
     mnLoadImage = uimenu('Parent', mnLoadData, 'Label', 'Load Images',...
-                         'callback', @loadImage); %choose the folder for graycode and phaseshift
+                         'callback', @loadImage_callback); %choose the folder for graycode and phaseshift
+    
     mnImportPC  = uimenu('Parent', mnLoadData, 'Label', 'Import Poincloud');
     mnExportPC  = uimenu('Parent', mnLoadData, 'Label', 'Export Pointcloud');
     mnExit      = uimenu('Parent', mnLoadData, 'Label', 'Exit');
@@ -51,7 +52,7 @@ function Scanner()
     mnSaveCalib = uimenu(mnCalib, 'Label', 'Save Result');
     
     %//********************PROCESS MENU**************************\\
-    
+
     % create two button in process panel
     %show point cloud button
     btShowPC = uicontrol('Parent', processPanel,...
@@ -66,13 +67,13 @@ function Scanner()
      % Decode graycode button
     btDecodeGray = uicontrol('Parent', processPanel,...
                         'string', 'Decode graycode', 'Position', [60 70 160 30],...
-                        'callback',@dispProImageGUI);
+                        'callback',@decodeGray_callback);
     
     % Decode graycode button
     btUnwrapPhase = uicontrol('Parent', processPanel,...
                         'string', 'Unwrap Phase', 'Position', [60 30 160 30],...
                         'string', 'Unwrap Phase', 'Position', [60 30 160 30],...
-                        'callback',@hello);
+                        'callback',@calWrappedPhase_callback);
                         
      %//*****************CAMERA TWEAK*******************
     %Create slider in camera tweak
@@ -177,6 +178,16 @@ function Scanner()
 end
 
 function Scanner_Constructor() 
+    global figHandle
+    
+    % Initilize for gray code image
+    setappdata(figHandle, 'grayHor', 0);
+    setappdata(figHandle, 'grayVer', 0);
+    
+    % Initilize for phase shift image
+    setappdata(figHandle, 'wrappedPhase', 0);
+    setappdata(figHandle, 'unWrappedPhase', 0);
+    
     addpath('./Modules/Camera');
     addpath('./Modules/DisplayResult');
     addpath('./Modules/GrayCode');
@@ -191,15 +202,12 @@ function Scanner_Destructor()
     rmpath('./Modules/PhaseShift');
     rmpath('./Modules/IO');
     close all;
+    clear all;
 end
 
 %%%%%%%%%%%%%%%%%%%%---CALLBACK FUNCTIONS---%%%%%%%%%%%%%%%%%%%%
 function hello
     disp('Hello world');
-end
-
-function showDecode_callback(src, evnt)
-     
 end
     
 function showImage_test(src, evnt, handles)
@@ -207,3 +215,23 @@ function showImage_test(src, evnt, handles)
     imshow(im, 'Parent', handles);
 endfunction
 
+%true function
+function loadImage_callback()
+    global figHandle
+    [grayIM, phaseIM] = loadImage();
+    setappdata(figHandle, 'grayIM', grayIM, 'phaseIM', phaseIM);
+endfunction
+
+function calWrappedPhase_callback()
+    global figHandle
+    [wPhi, uPhi] = calWrappedPhase(figHandle);
+    setappdata(figHandle, 'wrappedPhase', wPhi, 'unWrappedPhase', uPhi);
+    grayHor = getappdata(figHandle, 'grayHor');
+    grayVer = getappdata(figHandle, 'grayVer');
+    dispProImageGUI(grayHor, grayVer, wPhi, uPhi);
+endfunction
+
+function decodeGray_callback()
+    global figHandle
+
+end
