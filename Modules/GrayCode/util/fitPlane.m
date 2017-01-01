@@ -18,7 +18,7 @@ U = [X(:)-meanX ,Y(:)-meanY,Z(:)-meanZ];
 
 % Determine the minimum eigenvector of U'*U.
 [V,D] = eig(U'*U);
-[minVal,minInd] = min(diag(D));
+[~,minInd] = min(diag(D));
 a = V(1,minInd);
 b = V(2,minInd);
 c = V(3,minInd);

@@ -1,8 +1,8 @@
 function Scanner()
     Scanner_Constructor;
     global figHandle
-%    figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500], 'menubar', 'none');
     figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500]);
+%   figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500], 'menubar', 'none');
     
     %set constructor for figure
     set(figHandle, 'createfcn', {@Scanner_Constructor});
@@ -40,15 +40,20 @@ function Scanner()
     mnLoadData  = uimenu(figHandle, 'Label', 'Data');
     mnLoadImage = uimenu('Parent', mnLoadData, 'Label', 'Load Images',...
                          'callback', {@loadImage_callback}); %choose the folder for graycode and phaseshift
+                         
+    mnConvertImage = uimenu('Parent', mnLoadData, 'Label', 'Convert Images', ...
+                            'callback', {@convertImage_callback});  %Use this function for convert image name, format
     
     mnImportPC  = uimenu('Parent', mnLoadData, 'Label', 'Import Poincloud');
-    mnExportPC  = uimenu('Parent', mnLoadData, 'Label', 'Export Pointcloud');
+    mnExportPC  = uimenu('Parent', mnLoadData, 'Label', 'Export Pointcloud',...
+						 'callback', {@exportPC_callback});
     mnExit      = uimenu('Parent', mnLoadData, 'Label', 'Exit');
     
     % Menu load and calib camera and projector
     mnCalib     = uimenu(figHandle, 'Label', 'Calib system');
     mnNewCalib  = uimenu(mnCalib, 'Label', 'New Calib');
-    mnLoadCalib = uimenu(mnCalib, 'Label', 'Load calib');
+    mnLoadCalib = uimenu(mnCalib, 'Label', 'Load calib', ...
+                         'callback', {@loadCalibData_callback});
     mnSaveCalib = uimenu(mnCalib, 'Label', 'Save Result');
     
     %//********************PROCESS MENU**************************\\
@@ -56,24 +61,19 @@ function Scanner()
     % create two button in process panel
     %show point cloud button
     btShowPC = uicontrol('Parent', processPanel,...
-                        'string', 'Show Point Cloud', 'Position', [60 170 160 30],...
+                        'string', 'Show Point Cloud', 'Position', [60 160 160 30],...
                         'callback',{@showImage_test, dispFrame});
                         
     % Reconstruct button
     btReconstruct = uicontrol('Parent', processPanel,...
-                        'string', 'Reconstruct', 'Position', [60 130 160 30],...
-                        'callback',@hello);
+                        'string', 'Reconstruct', 'Position', [60 110 160 30],...
+                        'callback',@reconPointCloud_callback);
                         
      % Decode graycode button
-    btDecodeGray = uicontrol('Parent', processPanel,...
-                        'string', 'Decode graycode', 'Position', [60 70 160 30],...
-                        'callback',@decodeGray_callback);
-    
-    % Decode graycode button
-    btUnwrapPhase = uicontrol('Parent', processPanel,...
-                        'string', 'Unwrap Phase', 'Position', [60 30 160 30],...
-                        'string', 'Unwrap Phase', 'Position', [60 30 160 30],...
-                        'callback',@calWrappedPhase_callback);
+    btStartCalculate = uicontrol('Parent', processPanel,...
+                        'string', 'Start Calculate', 'Position', [60 60 160 30],...
+                        'callback',@startCalculate_callback);
+
                         
      %//*****************CAMERA TWEAK*******************
     %Create slider in camera tweak
@@ -154,17 +154,21 @@ function Scanner()
     
     txtThreshHold = uicontrol(calibParameterPanel, 'style', 'edit', ....
               'Position', [180, 25, 50, 20], 'fontsize', 9, ...
-              'string', '100');
+              'string', '100', 'callback', {@threshHold_callback});
     %******************************************************************
     
     %------------------ CAMERA CAPTURE -----------------------
-    uicontrol(cameraCapturePanel,'style', 'text', 'string', 'Thresh hold:',...
+    uicontrol(cameraCapturePanel,'style', 'text', 'string', 'Time out:',...
               'Position', [5, 180, 100, 20], 'fontsize', 9, ...
               'BackgroundColor','white','horizontalalignment','right');
     
-    txtCameraCapture = uicontrol(cameraCapturePanel, 'style', 'edit', ....
+    txtCameraTimeOut = uicontrol(cameraCapturePanel, 'style', 'edit', ....
                   'Position', [120, 180, 50, 20], 'fontsize', 9, ...
-                  'string', '100');                
+                  'string', '0.5');     
+
+    uicontrol(cameraCapturePanel,'style', 'text', 'string', 's',...
+              'Position', [170, 180, 10, 20], 'fontsize', 11, ...
+              'BackgroundColor','white','horizontalalignment','right');				  
                      
     %show point cloud button
     btCollectData = uicontrol('Parent', cameraCapturePanel,...
@@ -187,11 +191,19 @@ function Scanner_Constructor(src, evnt)
     % Initilize for phase shift image
     setappdata(0, 'wrappedPhase', figHandle);
     setappdata(0, 'unWrappedPhase', figHandle);
+	
+	% Initilize data for calibration when reconstruct
+	setappdata(0, 'calibData', figHandle);
+	
+	% Get the initilize thresh hold value
+	setappdata(figHandle, 'grayThreshHold', 100/255);
     
     addpath('./Modules/Camera');
     addpath('./Modules/DisplayResult');
     addpath('./Modules/GrayCode');
+    addpath('./Modules/GrayCode/util');
     addpath('./Modules/PhaseShift');
+    addpath('./Modules/Calibration');
     addpath('./Modules/IO');
 end
 
@@ -199,7 +211,9 @@ function Scanner_Destructor(src, evnt)
     rmpath('./Modules/Camera');
     rmpath('./Modules/DisplayResult');
     rmpath('./Modules/GrayCode');
+    rmpath('./Modules/GrayCode/util');
     rmpath('./Modules/PhaseShift');
+    rmpath('./Modules/Calibration');
     rmpath('./Modules/IO');
     close all;
     clear all;
@@ -215,7 +229,31 @@ function showImage_test(src, evnt, handles)
     imshow(im, 'Parent', handles);
 end
 
-%true function
+%%%%%%%%%%%%%%%%----Convert Images----%%%%%%%%%%%%%%%%%%%%%
+function convertImage_callback(src, evnt)
+    folderPath = uigetdir('/media/duonghung/Data/IMAGE','Open Image folder to convert');
+    if (folderPath == 0)
+        return;
+    end
+    
+    
+end
+
+%%%%%%%%%%%%%%%%%%%%---CALLBACK FUNCTIONS FOR EDIT TEXT---%%%%%%%%%%%%%%%%%%%%
+function threshHold_callback(src, evnt)
+	global figHandle
+	temp = (get(src,'string'));
+	if isempty(temp)
+		errordlg('You cannot leave the blank value for thresh hold', 'Error Data');
+		return;
+	else	
+		grayThreshHold = str2double(temp)/255;
+		setappdata(figHandle, 'grayThreshHold', grayThreshHold);
+	end
+end	
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%true function%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function loadImage_callback(src, evnt)
     global figHandle
     [grayIM, phaseIM] = loadImage();
@@ -223,17 +261,113 @@ function loadImage_callback(src, evnt)
     setappdata(figHandle, 'phaseIM', phaseIM);
 end
 
-function calWrappedPhase_callback(src, evnt)
+function startCalculate_callback(src, evnt)
     global figHandle
+    
+    %Calculate for phase shift images
     [wPhi, uPhi] = calWrappedPhase(figHandle);
-    setappdata(figHandle,'wrappedPhase',wPhi);
-    setappdata(figHandle,'unWrappedPhase',uPhi);
-    grayHor = getappdata(figHandle, 'grayHor');
-    grayVer = getappdata(figHandle, 'grayVer');
-    dispProImageGUI(grayHor, grayVer, wPhi, uPhi);
+    if (isempty(wPhi) || isempty(uPhi))
+        return;
+    else
+        setappdata(figHandle,'wrappedPhase',wPhi);
+        setappdata(figHandle,'unWrappedPhase',uPhi);
+    end
+    
+    %Calculate for gray coded images
+    grayIM = getappdata(figHandle, 'grayIM');
+    if isempty(grayIM)
+        return;
+    else
+		grayThreshHold = getappdata(figHandle, 'grayThreshHold');
+		if (isempty(grayThreshHold) || grayThreshHold < 0) 
+			grayThreshHold = 0.5;
+		end
+		
+        decodedData = decodeGrayIM(grayIM, grayThreshHold);
+        setappdata(figHandle, 'grayHor', decodedData{1,2});
+        setappdata(figHandle, 'grayVer', decodedData{1,1});
+        grayHor = decodedData{1,2};
+        grayVer = decodedData{1,1};
+    end
+
+    % Display results for both phase shift and graycoded
+    if (~isempty(wPhi) || ~isempty(uPhi) || ~isempty(decodecData))
+        dispProImageGUI(grayHor, grayVer, wPhi, uPhi);
+    end
 end
 
-function decodeGray_callback(src, evnt)
-    global figHandle
 
+%%%%%%%%%%%%%%%%%%% Calibration callback %%%%%%%%%%%%%%%%%%%
+function loadCalibData_callback(src, evnt)
+   global figHandle
+   [calibFile, calibDataDir] = uigetfile({'*.yml';'*.xml'}, 'Select file calibrartion data',...
+                                         '/media/duonghung/Data/IMAGE');
+   if isequal(calibFile, 0)
+      return;
+   end
+  
+   try
+      calibData = cv.FileStorage([calibDataDir calibFile]);
+%      show_ketqua(S);
+      msgbox('Read calib data sucsessfully','Done');
+      setappdata(figHandle, 'calibData', calibData);
+   catch exception
+      errordlg('Error when load calib data, please check opencv toolbox', 'Error load calibration data');
+	  setappdata(figHandle, 'calibData', []);
+      disp(exception);
+   end
+end
+
+
+function reconPointCloud_callback(src, evnt)
+    global figHandle
+	
+	calibData = getappdata(figHandle, 'calibData');
+	
+	if isempty(calibData)
+		errordlg('Please make sure you have loaded the calibration data', 'Error Calibration data not found');
+		setappdata(figHandle, 'pointCloud', []);
+		return;
+	end
+    
+    grayHor = getappdata(figHandle, 'grayHor');
+    grayVer = getappdata(figHandle, 'grayVer');
+    
+    if isempty(grayHor) || isempty(grayVer)
+        errordlg('Please make sure you have loaded gray images and decoded images before this step',...
+                  'Error Data Empty');
+        return;
+    end
+    set(figHandle, 'pointer', 'watch');
+    fwait = waitWindow();
+    pointCloud = reconstructGrayCode(figHandle);
+	setappdata(figHandle, 'pointCloud', pointCloud);
+    set(figHandle, 'pointer', 'arrow');
+    delete(fwait);
+	
+end
+
+%%%%%%%%%et%%% POINCLOUD MENU CALLBACK %%%%%%%%%%%%%%%%%et
+function exportPC_callback(src, evnt)
+	global figHandle
+	try
+		pointCloud = getappdata(figHandle, 'pointCloud');
+		pointCloud = pointCloud';
+		x = pointCloud(1:end, 1);
+		y = pointCloud(1:end, 2);
+		z = pointCloud(1:end, 3);
+		
+		vertex = struct('x', x, 'y', y, 'z', z);
+		pcOutput = struct('vertex', vertex);
+        disp('Saving pointcloud ...');
+        ply_write(pcOutput, './OutputData/PointCloud.ply', 'binary_little_endian');
+        disp('+ Done');
+%		scatter3(x, y, z);
+		
+	catch ex
+		disp(ex)
+		errordlg('The reconstruction process was failed, please check all again.', 'Error Data');
+		return;
+	end	
+	
 end

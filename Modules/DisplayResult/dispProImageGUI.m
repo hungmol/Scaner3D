@@ -64,7 +64,6 @@ function dispProImageGUI(grayHor, grayVer, wrappedImage, unWrappedImage)
     axesUnwrappedPhase = axes('Parent', phaseUnwrappedPanel, 'Position', [0.01, 0.01, 0.98, 0.98]);
     
     %Show picture
-    colormap(gray(256));
     if ~isempty(grayHor)
         imagesc(grayHor, 'Parent', axesGrayHor);
     end
@@ -72,7 +71,9 @@ function dispProImageGUI(grayHor, grayVer, wrappedImage, unWrappedImage)
     if ~isempty(grayVer)
         imagesc(grayVer, 'Parent', axesGrayVer);
     end
+    colormap(jet(256));
     
+%    colormap(gray(256));
     if ~isempty(wrappedImage)
         imagesc(wrappedImage, 'Parent', axesWrappedPhase);
     end
@@ -80,4 +81,5 @@ function dispProImageGUI(grayHor, grayVer, wrappedImage, unWrappedImage)
     if ~isempty(unWrappedImage)
         imagesc(unWrappedImage, 'Parent', axesUnwrappedPhase);
     end   
+    colormap(gray(256));
 end

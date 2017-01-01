@@ -35,7 +35,7 @@ function [grayIM, phaseIM] = loadImage()
     
     %----------------- Load Graycoded Images-------------------
     imProBar = waitbar(0, 'Initilize', 'Name', 'Loading graycode images',...
-                           'CreateCancelBtn', @cancel_fnc);
+                           'CreateCancelBtn', {@cancel_fnc});
                            
     grayMatrix = inv([1.0 0.956 0.621; 1.0 -0.272 -0.647; 1.0 -1.106 1.703]);
     indexGrayConvert = grayMatrix(1,:)';
@@ -47,10 +47,10 @@ function [grayIM, phaseIM] = loadImage()
             end
             
             if (i == 1 || i == 2)
-                grayIM{1,i} = imread([str1, '/', num2str(i, '%0.02d'), '.bmp']);
+                grayIM{1,i} = imread([str1, '/', num2str(i, '%0.02d'), '.jpg']);
             else
             
-                temp = imread([str1, '/', num2str(i, '%0.02d'), '.bmp']);
+                temp = imread([str1, '/', num2str(i, '%0.02d'), '.jpg']);
                 grayIM{1,i} = imlincomb(indexGrayConvert(1), temp(:,:,1),...
                                         indexGrayConvert(2), temp(:,:,2),...
                                         indexGrayConvert(3), temp(:,:,3),'double');
@@ -60,8 +60,9 @@ function [grayIM, phaseIM] = loadImage()
         end
     catch ex
         errordlg(['Check file format, make sure have enough images or has right name,',...
-                  'Program only support bmp extension for graycode images'],'Loading image error!');
+                  'Program only support jpg extension for graycode images'],'Loading image error!');
         disp(ex);
+        return;
     end   
     delete(imProBar);
     
@@ -76,6 +77,7 @@ function [grayIM, phaseIM] = loadImage()
         errordlg(['Check file format, make sure have enough images or has right name,',...
                   'Program only support .jpg extension for phase shift images'],'Loading image error!');
         disp(ex);
+        return;
     end
     delete(imProPhaseBar)
         
