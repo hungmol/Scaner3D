@@ -7,6 +7,16 @@ function Scanner()
     %set constructor for figure
     set(figHandle, 'createfcn', {@Scanner_Constructor});
     set(figHandle, 'deletefcn', {@Scanner_Destructor});
+    
+    % Get the initilize Data
+    if ~exist('setup.xml','file');
+        warndlg('The file setup for data calibration not found, so I will load my default data', 'File not found');
+        initData = struct('timeOut',0.5, 'threshHold', 100,'squareWidth', 15,...
+                    'squareHeight', 15, 'horizontalSquare', 17, 'verticalSquare', 11);
+        cv.FileStorage('setup.xml', initData);
+    else
+        initData = cv.FileStorage('setup.xml');
+    end
 
     %add main panel
     showPanel = uipanel('Title', '', 'Position', [0.5, 0, 0.5, 0.99],...
@@ -51,7 +61,7 @@ function Scanner()
     
     % Menu load and calib camera and projector
     mnCalib     = uimenu(figHandle, 'Label', 'Calib system');
-    mnNewCalib  = uimenu(mnCalib, 'Label', 'New Calib');
+    mnNewCalib  = uimenu(mnCalib, 'Label', 'New Calib','callback', {@calibrationCamPro});
     mnLoadCalib = uimenu(mnCalib, 'Label', 'Load calib', ...
                          'callback', {@loadCalibData_callback});
     mnSaveCalib = uimenu(mnCalib, 'Label', 'Save Result');
@@ -118,7 +128,7 @@ function Scanner()
               
     txtSquareWidth = uicontrol(calibParameterPanel, 'style', 'edit', ....
               'Position', [180, 165, 50, 20], 'fontsize', 9, ...
-              'string', '15');
+              'string', num2str(initData.squareWidth), 'callback', {@squareWidth_callback});
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%     
     % Square Height               
     uicontrol(calibParameterPanel,'style', 'text', 'string', 'Square Height:',...
@@ -127,7 +137,7 @@ function Scanner()
               
     txtSquareHeight = uicontrol(calibParameterPanel, 'style', 'edit', ....
               'Position', [180, 130, 50, 20], 'fontsize', 9, ...
-              'string', '15');
+              'string', num2str(initData.squareHeight),'callback',{@squareHeight_callback});
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%     
     % Horizontal Squares               
     uicontrol(calibParameterPanel,'style', 'text', 'string', 'Hor Squares:',...
@@ -136,7 +146,7 @@ function Scanner()
               
     txtHorSquare = uicontrol(calibParameterPanel, 'style', 'edit', ....
               'Position', [180, 95, 50, 20], 'fontsize', 9, ...
-              'string', '0');              
+              'string', num2str(initData.horizontalSquare),'callback',{@horizontalSquare_callback});              
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Veritcal Squares                    
     uicontrol(calibParameterPanel,'style', 'text', 'string', 'Ver Squares:',...
@@ -145,7 +155,7 @@ function Scanner()
     
     txtVerSquare = uicontrol(calibParameterPanel, 'style', 'edit', ....
               'Position', [180, 60, 50, 20], 'fontsize', 9, ...
-              'string', '0');
+              'string', num2str(initData.verticalSquare),'callback',{@verticalSquare_callback});
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Thresh hold                
     uicontrol(calibParameterPanel,'style', 'text', 'string', 'Thresh hold:',...
@@ -154,7 +164,7 @@ function Scanner()
     
     txtThreshHold = uicontrol(calibParameterPanel, 'style', 'edit', ....
               'Position', [180, 25, 50, 20], 'fontsize', 9, ...
-              'string', '100', 'callback', {@threshHold_callback});
+              'string',num2str(initData.threshHold), 'callback', {@threshHold_callback});
     %******************************************************************
     
     %------------------ CAMERA CAPTURE -----------------------
@@ -164,7 +174,7 @@ function Scanner()
     
     txtCameraTimeOut = uicontrol(cameraCapturePanel, 'style', 'edit', ....
                   'Position', [120, 180, 50, 20], 'fontsize', 9, ...
-                  'string', '0.5');     
+                  'string', num2str(initData.timeOut),'callback',{@timeOut_callback});     
 
     uicontrol(cameraCapturePanel,'style', 'text', 'string', 's',...
               'Position', [170, 180, 10, 20], 'fontsize', 11, ...
@@ -179,6 +189,7 @@ function Scanner()
                         'string', 'Preview Camera', 'Position', [60, 60 160 30],...
                         'callback',@hello); 
     %---------------------------------------------------------
+    
 end
 
 function Scanner_Constructor(src, evnt) 
@@ -186,7 +197,7 @@ function Scanner_Constructor(src, evnt)
     
     % Initilize for gray code image    
     setappdata(0, 'grayHor', figHandle);
-    setappdata( 0, 'grayVer', figHandle);
+    setappdata(0, 'grayVer', figHandle);
     
     % Initilize for phase shift image
     setappdata(0, 'wrappedPhase', figHandle);
@@ -229,7 +240,85 @@ function showImage_test(src, evnt, handles)
     imshow(im, 'Parent', handles);
 end
 
-%%%%%%%%%%%%%%%%----Convert Images----%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%---EDIT TEXT FOR CALIBRATION---%%%%%%%%%%%%%%%%%%%%%%
+
+% the width of rectangle to calib
+function squareWidth_callback(src, evnt)
+    squareWidth = get(src,'string');
+	if isempty(squareWidth)
+		errordlg('You cannot leave the blank value for thresh hold', 'Error Data');
+		return;
+	else	
+%		setappdata(figHandle, 'squareWidth', squareWidth);
+%   update parameter to file 
+        tempData = cv.FileStorage('setup.xml');
+        tempData.squareWidth = str2double(squareWidth);
+        cv.FileStorage('setup.xml', tempData);
+	end
+end
+
+% the height of rectangle to calib
+function squareHeight_callback(src, evnt)
+    squareHeight = get(src,'string');
+	if isempty(squareHeight)
+		errordlg('You cannot leave the blank value for thresh hold', 'Error Data');
+		return;
+	else	
+%		setappdata(figHandle, 'squareHeight', squareHeight);
+%   update parameter to file 
+        tempData = cv.FileStorage('setup.xml');
+        tempData.squareHeight= str2double(squareHeight);
+        cv.FileStorage('setup.xml', tempData);
+	end
+end
+
+% Number of rectangles follow the horizontal
+function horizontalSquare_callback(src, evnt)
+    horizontalSquare = get(src,'string');
+	if isempty(horizontalSquare)
+		errordlg('You cannot leave the blank value for thresh hold', 'Error Data');
+		return;
+	else	
+%		setappdata(figHandle, 'horizontalSquare', horizontalSquare);
+%   update parameter to file 
+        tempData = cv.FileStorage('setup.xml');
+        tempData.horizontalSquare = str2double(horizontalSquare);
+        cv.FileStorage('setup.xml', tempData);
+	end
+end
+
+% Number of rectangles follow the vertical
+function verticalSquare_callback(src, evnt)
+    global figHandle
+    verticalSquare = get(src,'string');
+	if isempty(verticalSquare)
+		errordlg('You cannot leave the blank value for thresh hold', 'Error Data');
+		return;
+	else	
+%		setappdata(figHandle, 'verticalSquare', verticalSquare);
+%   update parameter to file 
+        tempData = cv.FileStorage('setup.xml');
+        tempData.verticalSquare = str2double(verticalSquare);
+        cv.FileStorage('setup.xml', tempData);
+	end
+end
+
+function timeOut_callback(src, evnt)
+    timeOut = get(src,'string');
+	if isempty(timeOut)
+		errordlg('You cannot leave the blank value for thresh hold', 'Error Data');
+		return;
+	else	
+%		setappdata(figHandle, 'verticalSquare', verticalSquare);
+%   update parameter to file 
+        tempData = cv.FileStorage('setup.xml');
+        tempData.timeOut = str2double(timeOut);
+        cv.FileStorage('setup.xml', tempData);
+	end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----Convert Images----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function convertImage_callback(src, evnt)
     folderPath = uigetdir('/media/duonghung/Data/IMAGE','Open Image folder to convert');
     if (folderPath == 0)
@@ -249,11 +338,16 @@ function threshHold_callback(src, evnt)
 	else	
 		grayThreshHold = str2double(temp)/255;
 		setappdata(figHandle, 'grayThreshHold', grayThreshHold);
+        
+        %   update parameter to file 
+        tempData = cv.FileStorage('setup.xml');
+        tempData.threshHold = num2str(temp);
+        cv.FileStorage('setup.xml', tempData);
 	end
 end	
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%true function%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----true function----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function loadImage_callback(src, evnt)
     global figHandle
     [grayIM, phaseIM] = loadImage();

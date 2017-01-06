@@ -1,6 +1,6 @@
 % This function use for load sequence for graycode image
 
-function [decodedOutput] = loadImageSequence(listOfDir, grayThresh)
+function [grayIM] = loadImageSequence(listOfDir, grayThresh)
     decodedOuput = {};
     numOfGrayIM = 42;
    
@@ -10,7 +10,7 @@ function [decodedOutput] = loadImageSequence(listOfDir, grayThresh)
     end
     
     decodedOutput = cell(length(listOfDir), 2);
-    grayIM = cell(1, numOfGrayIM);
+    grayIM = cell(length(listOfDir), numOfGrayIM);
     
     global abort_waitbar;
     abort_waitbar = false;
@@ -26,20 +26,22 @@ function [decodedOutput] = loadImageSequence(listOfDir, grayThresh)
             str = listOfDir(j).name;
             for i = 1:1:numOfGrayIM
                 if (abort_waitbar == true)
+                    delete(imProBar);
                     return;
                 end
                 
                 if (i == 1 || i == 2)
-                    grayIM{1,i} = imread([str, '/', num2str(i, '%0.02d'), '.jpg']);
+                    grayIM{j,i} = imread([str, '/', num2str(i, '%0.02d'), '.jpg']);
                 else
                 
                     temp = imread([str, '/', num2str(i, '%0.02d'), '.jpg']);
-                    grayIM{1,i} = imlincomb(indexGrayConvert(1), temp(:,:,1),...
+                    grayIM{j,i} = imlincomb(indexGrayConvert(1), temp(:,:,1),...
                                             indexGrayConvert(2), temp(:,:,2),...
                                             indexGrayConvert(3), temp(:,:,3),'double');
                 end
                 
-                waitbar(i/numOfGrayIM, imProBar, ['Loading ...', num2str(round(i/numOfGrayIM*100)), '%']);
+                waitbar(i/numOfGrayIM, imProBar, ['Sequences ', num2str(j),'/', num2str(lenght(listOfDir)),...
+                        ' Loading ...', num2str(round(i/numOfGrayIM*100)), '%']);
             end
          catch ex
             errordlg(['Check file format, make sure have enough images or has right name,',...
@@ -50,10 +52,10 @@ function [decodedOutput] = loadImageSequence(listOfDir, grayThresh)
         delete(imProBar);   
         %--------------------------------------------------------------------------------------
         
-        %%%%%%%%%%%%%%----Decode image----%%%%%%%%%%%%%%%%%
-        decodedTemp = decodeGrayIM(grayIM, grayThresh);
-        decodeOutput{j, 1} = decodedTemp{1, 1};
-        decodeOutput{j, 2} = decodedTemp{1, 2};
+%        %%%%%%%%%%%%%%----Decode image----%%%%%%%%%%%%%%%%%
+%        decodedTemp = decodeGrayIM(grayIM, grayThresh);
+%        decodeOutput{j, 1} = decodedTemp{1, 1};
+%        decodeOutput{j, 2} = decodedTemp{1, 2};
     end
 end
 
