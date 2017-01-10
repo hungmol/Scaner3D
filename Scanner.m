@@ -1,11 +1,12 @@
 function Scanner()
-    Scanner_Constructor;
+%    Scanner_Constructor;
     global figHandle
     figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500]);
 %   figHandle = figure('name', '3D Scanner', 'Position', [300, 300, 1200, 500], 'menubar', 'none');
+
+    Scanner_Constructor;
     
     %set constructor for figure
-    set(figHandle, 'createfcn', {@Scanner_Constructor});
     set(figHandle, 'deletefcn', {@Scanner_Destructor});
     
     % Get the initilize Data
