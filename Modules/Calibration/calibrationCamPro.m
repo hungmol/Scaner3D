@@ -10,6 +10,7 @@ function calibrationCamPro()
                          'BackgroundColor', [0.25, 0.1, 0.25], ...
                          'ForegroundColor', 'white');
     axesColorImage = axes('Parent', imagePanel, 'Position', [0.01, 0.01, 0.98, 0.98]);
+    setappdata(mainFig, 'axesColorImage', axesColorImage);
     
     decodePanel = uipanel('Parent', mainFig, 'Position', [0.0, 0.5, 0.5, 0.5],'BackgroundColor', [0.25, 0.1, 0.25]);
     
@@ -22,7 +23,10 @@ function calibrationCamPro()
                         'ForegroundColor', 'white');
     
     axesDecodeHor = axes('Parent', decodeHor, 'Position', [0.0, 0.01, 0.98, 0.98]);
+    setappdata(mainFig, 'axesDecodeHor', axesDecodeHor);
+    
     axesDecodeVer = axes('Parent', decodeVer, 'Position', [0.0, 0.01, 0.98, 0.98]);
+    setappdata(mainFig, 'axesDecodeVer', axesDecodeVer);
     
     controlPanel = uipanel('Parent', mainFig, 'Position', [0.0, 0.0, 0.5, 0.5], 'Title', 'Control Panel',...
                            'BackgroundColor', [0.25, 0.1, 0.25], ...
@@ -83,9 +87,21 @@ end
  
 function decodeImage_callback(src, evnt)
     %        %%%%%%%%%%%%%%----Decode image----%%%%%%%%%%%%%%%%%
-    decodedTemp = decodeGrayIM(grayIM, grayThresh);
-    decodeOutput{j, 1} = decodedTemp{1, 1};
-    decodeOutput{j, 2} = decodedTemp{1, 2};
+    global mainFig
+    grayIM = getappdata(mainFig, 'graySequence');
+    initData = cv.FileStorage('setup.xml');
+    
+    for i=1:size(grayIM,1)
+        decodedTemp = decodeGrayIM(grayIM(i, :), str2double(initData.threshHold));
+        decodeOutput{i, 1} = decodedTemp{1, 1};
+        decodeOutput{i, 2} = decodedTemp{1, 2};
+    end
+    
+    
+    axesDecodeHor = getappdata(mainFig, 'axesDecodeHor');
+    imagesc(decodeOutput{1,1}, 'Parent', axesDecodeHor);
+    axesDecodeVer = getappdata(mainFig, 'axesDecodeVer');
+    imagesc(decodeOutput{1,2}, 'Parent', axesDecodeVer);
 end
  
 function btNext_callback(src, evnt)
